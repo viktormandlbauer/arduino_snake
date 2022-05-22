@@ -1,0 +1,72 @@
+
+  matrix_8X32[position[0]][position[1]] = 0x80;
+  draw_matrix();
+  delay(500);
+
+  matrix_8X32[position[0]][position[1]] >>= 0x01;
+  draw_matrix();
+  delay(500);
+
+  matrix_8X32[position[0]][position[1]] >>= 0x01;
+  draw_matrix();
+  delay(500);
+
+  matrix_8X32[position[0]][position[1]] >>= 0x01;
+  draw_matrix();
+  delay(500);
+
+  matrix_8X32[position[0]][position[1]] >>= 0x01;
+  draw_matrix();
+  delay(500);
+
+  draw_matrix();
+
+  delay(500);
+  clear_screen();
+
+  Serial.println("Finished");
+
+
+
+    if (matrix_8X32[position[0]][position[1]] == position[2])
+  {
+    new_game();
+  }
+  else
+  {
+    matrix_8X32[position[0]][position[1]] = position[2];
+  }
+
+
+
+  for (int i = 0; i < sizeof(positions); i++)
+  {
+    if (positions[i][0] == current_position[0] && positions[i][1] == current_position[1] && positions[i][1] == current_position[1])
+    {
+      new_game();
+    }
+    else
+    {
+      matrix[current_position[0]][current_position[1]] |= current_position[2];
+      draw_matrix();
+    }
+  }
+
+
+
+
+    // Dynamic array for position tracking
+    int *arr[length];
+    int i;
+
+    for (i = 0; i < length; i++)
+    {
+      arr[i] = (int *)malloc(3 * sizeof(int));
+    }
+
+    for (i = 0; i < length; i++)
+    {
+      arr[i][0] = current_position[0];
+      arr[i][1] = current_position[1];
+      arr[i][2] = current_position[2];
+    }
