@@ -4,6 +4,8 @@
 const int CLOCK_pin = 11;
 const int LOAD_pin = 12;
 const int DIN_pin = 13;
+const int controller_x_axis = A0;
+const int controller_y_axis = A1;
 
 // MAX7219 Register Addresses
 const byte max7219_REG_noop = 0x00;
@@ -13,19 +15,12 @@ const byte max7219_REG_scanLimit = 0x0b;
 const byte max7219_REG_shutdown = 0x0c;
 const byte max7219_REG_displayTest = 0x0f;
 
-struct Position
-{
-  byte row;
-  byte module;
-  byte column;
-};
-
-// Module in Serie
+// Variables
 const int modules = 4;
-const int array_size = 256;
-Position current_position;
-char matrix[8][modules];
+const int game_speed = 100; // Miliseconds
+const int array_size = 64 * modules;
 
+// Send 8 bit
 void SendByte(byte data)
 {
 
@@ -49,6 +44,7 @@ void SendByte(byte data)
   }
 }
 
+// Init 16 bit
 void init(byte reg_addr, byte reg_data)
 {
   digitalWrite(LOAD_pin, LOW);
@@ -60,7 +56,10 @@ void init(byte reg_addr, byte reg_data)
   digitalWrite(LOAD_pin, HIGH);
 }
 
-// Gibt das Array auf dem Display aus
+// Display matrix
+char matrix[8][modules];
+
+// Draw display matrix
 void draw_matrix()
 {
 
@@ -94,6 +93,36 @@ void draw_matrix()
     digitalWrite(LOAD_pin, HIGH);
   }
 }
+
+// Clear screen and set display matrix all 0s
+void clear_screen()
+{
+  init(1, 0);
+  init(2, 0);
+  init(3, 0);
+  init(4, 0);
+  init(5, 0);
+  init(6, 0);
+  init(7, 0);
+  init(8, 0);
+
+  for (byte i = 0; i < 8; i++)
+  {
+    for (byte j = 0; j < modules; j++)
+    {
+      matrix[i][j] = 0;
+    }
+  }
+}
+
+struct Position
+{
+  byte row;
+  byte module;
+  byte column;
+};
+
+Position current_position;
 
 void up()
 {
@@ -161,30 +190,6 @@ void left()
   }
 }
 
-void process_joystick_input(){
-
-}
-
-void clear_screen()
-{
-  init(1, 0);
-  init(2, 0);
-  init(3, 0);
-  init(4, 0);
-  init(5, 0);
-  init(6, 0);
-  init(7, 0);
-  init(8, 0);
-
-  for (byte i = 0; i < 8; i++)
-  {
-    for (byte j = 0; j < modules; j++)
-    {
-      matrix[i][j] = 0;
-    }
-  }
-}
-
 // Gibt eine zufällige Position auf einem Module zurück
 Position get_random_positon()
 {
@@ -201,31 +206,34 @@ Position spawn_food()
 {
   Position position_food = get_random_positon();
   matrix[position_food.row][position_food.module] |= (0x01 << position_food.column);
-  draw_matrix();
   return position_food;
 }
 
 // ** Erstellt eine neues Spiel **
 void new_game(Position arr[array_size])
 {
-  // Startpositon auf Spielfeld wird bestimmt
+  // Startpositon in field array
+  // Tail
   arr[0].row = 4;
   arr[0].module = 1;
   arr[0].column = (0x01 << 4);
 
+  // Body
   arr[1].row = 4;
   arr[1].module = 1;
   arr[1].column = (0x01 << 3);
 
+  // Head
   arr[2].row = 4;
   arr[2].module = 1;
   arr[2].column = (0x01 << 2);
 
+  // Head positon is current position
   current_position.row = arr[2].row;
   current_position.module = arr[2].module;
   current_position.column = arr[2].column;
 
-  // Zeichenmatrix wird zurückgesetzt und neu erstellt
+  // Reset
   clear_screen();
   matrix[arr[0].row][arr[0].module] = arr[0].column;
   matrix[arr[1].row][arr[1].module] = arr[1].column;
@@ -237,66 +245,59 @@ void setup()
 {
   Serial.begin(9600);
 
-  // Set Output Pins
+  // Set output pins for LED Matrix
   pinMode(DIN_pin, OUTPUT);
   pinMode(CLOCK_pin, OUTPUT);
   pinMode(LOAD_pin, OUTPUT);
 
-  // Set Input Pins
-  pinMode(A0, INPUT);
-  pinMode(A1, INPUT);
+  // Set input pins for controller
+  pinMode(controller_x_axis, INPUT);
+  pinMode(controller_y_axis, INPUT);
 
-  // Aktiviert alle Reihen
-  init(max7219_REG_scanLimit, 0x07); // set to scan all row
+  // Activate alle rows
+  init(max7219_REG_scanLimit, 0x07);
 
-  // Kein decoding
+  // No decofing
   init(max7219_REG_decodeMode, 0x00);
 
-  // Kein shutdown
+  // No display test
   init(max7219_REG_displayTest, 0x00);
 
-  // Kein shutdown mode
+  // No shutdown
   init(max7219_REG_shutdown, 0x01);
 
   // Max brightness
   init(max7219_REG_intensity, 0x0F);
-
-  Serial.write("\nStarting Snake");
 }
 
 void loop()
 {
-
+  // Setup
   int stepper = 3;
   int length = 3;
   int direction = 2;
   bool collission_detected = false;
 
+  // Field array
   Position arr[array_size];
 
+  // Init new game
   new_game(arr);
 
+  // Spawn first food
   Position position_food = spawn_food();
 
   while (1)
   {
     // Game Loop
+    delay(game_speed);
 
-    // Serial print current position
-    // char out[256];
-    // snprintf(out, 256, "\nCurrent position:\n\tRow\t->\t%d\n\tModule\t->\t%d\n\tColumn\t->\t%d", current_position.row, current_position.module, current_position.column);
-    // Serial.print(out);
+    // ** Processing input **
+    int up_down = analogRead(controller_x_axis);    // up -> 0, down -> 1023
+    int right_left = analogRead(controller_y_axis); // right -> 0, left -> 1023
 
-    // ** Joystick analog read **
-    // up -> 0, down -> 1023
-    int up_down = analogRead(A0);
-
-    // right -> 0, left -> 1023
-    int right_left = analogRead(A1);
-
-    // ** Joystick logic **
     // if direction up-down
-    if (direction < 1)
+    if (direction <= 1)
     {
       // only right-left possible
       if (right_left < 400)
@@ -352,47 +353,27 @@ void loop()
       }
     }
 
-    // Check if current_position (head) equals position_food
-    if ((current_position.row == position_food.row) && (current_position.module == position_food.module) && (current_position.column == (0x01 << position_food.column)))
-    {
-      // Increase snake size
-      length++;
+    // ** Processing game **
+    // Removes tail vom draw matrix
+    matrix[arr[stepper - length].row][arr[stepper - length].module] &= ~(arr[stepper - length].column);
 
-      // Remove food from drawmatrix and spawn_food
-      matrix[position_food.row][position_food.module] &= ~(0x01 << position_food.column);
-      position_food = spawn_food();
-    }
-
-    // Check for collissions
-    for (int i = 0; i < stepper; i++)
-    {
-      if ((arr[i].row == current_position.row) && (arr[i].module == current_position.module) && (arr[i].column == current_position.column))
-      {
-        collission_detected = true;
-        // Game Over
-        break;
-      }
-    }
-
-    // Appends current position for current step
+    // Appends current position to draw matrix
     matrix[current_position.row][current_position.module] |= current_position.column;
 
+    // Append current position to field array
     arr[stepper].row = current_position.row;
     arr[stepper].module = current_position.module;
     arr[stepper].column = current_position.column;
 
-    // Removes tail from draw matrix (XOR)
-    matrix[arr[stepper - length].row][arr[stepper - length].module] &= ~(arr[stepper - length].column);
-
-    // Removes tail from field
+    // Removes tail from field array
     arr[stepper - length].row = 0;
     arr[stepper - length].module = 0;
     arr[stepper - length].column = 0;
 
-    // Check if the array is full
+    // Check if field array is full
     if (stepper == array_size - 1)
     {
-      // Rewrites positions at the beginning of the array
+      // Rewrites positions at the beginning of the field array
       for (int i = length; i >= 0; i--)
       {
         arr[length - i].row = arr[array_size - 1 - i].row;
@@ -400,6 +381,33 @@ void loop()
         arr[length - i].column = arr[array_size - 1 - i].column;
       }
       stepper = length;
+    }
+
+    // Check if current_position (head) equals position_food
+    if ((current_position.row == position_food.row) && (current_position.module == position_food.module) && (current_position.column == (0x01 << position_food.column)))
+    {
+      // Increase snake size
+      length++;
+
+      // Spawn food
+      position_food = spawn_food();
+    }
+
+    // Check for collissions
+    for (int i = stepper - length; i < stepper - 3; i++)
+    {
+      if ((arr[i].row == current_position.row) && (arr[i].module == current_position.module) && (arr[i].column == current_position.column))
+      {
+        // Game Over
+        Serial.println("Game Over!");
+        collission_detected = true;
+        break;
+      }
+    }
+    if (collission_detected)
+    {
+      Serial.println("Restarting...");
+      break;
     }
 
     // Increase stepper and draw matix
