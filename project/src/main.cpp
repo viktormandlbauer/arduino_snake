@@ -1,7 +1,7 @@
 #include <Arduino.h>
 
 // Pin definition
-const int CLOCK_pin = 11;
+const int CLOCK_pin = 12;
 const int LOAD_pin = 12;
 const int DIN_pin = 13;
 const int controller_x_axis = A0;
@@ -15,12 +15,12 @@ const byte max7219_REG_scanLimit = 0x0b;
 const byte max7219_REG_shutdown = 0x0c;
 const byte max7219_REG_displayTest = 0x0f;
 
-// Variables
+// Constants
 const int modules = 4;
 const int game_speed = 100; // Miliseconds
 const int array_size = 64 * modules;
 
-// Send 8 bit
+// Send 8 bits
 void SendByte(byte data)
 {
 
@@ -190,7 +190,7 @@ void left()
   }
 }
 
-// Gibt eine zufällige Position auf einem Module zurück
+// Returns random position
 Position get_random_positon()
 {
   Position random_position;
@@ -201,7 +201,7 @@ Position get_random_positon()
   return random_position;
 }
 
-// Erstellt einen zufälligen Punkt auf der Matrix
+// Random positon on draw matrix
 Position spawn_food()
 {
   Position position_food = get_random_positon();
@@ -209,10 +209,10 @@ Position spawn_food()
   return position_food;
 }
 
-// ** Erstellt eine neues Spiel **
+// Init new game
 void new_game(Position arr[array_size])
 {
-  // Startpositon in field array
+  // Init position
   // Tail
   arr[0].row = 4;
   arr[0].module = 1;
@@ -233,7 +233,7 @@ void new_game(Position arr[array_size])
   current_position.module = arr[2].module;
   current_position.column = arr[2].column;
 
-  // Reset
+  // Reset display
   clear_screen();
   matrix[arr[0].row][arr[0].module] = arr[0].column;
   matrix[arr[1].row][arr[1].module] = arr[1].column;
@@ -278,7 +278,7 @@ void loop()
   int direction = 2;
   bool collission_detected = false;
 
-  // Field array
+  // Game array
   Position arr[array_size];
 
   // Init new game
@@ -357,23 +357,23 @@ void loop()
     // Removes tail vom draw matrix
     matrix[arr[stepper - length].row][arr[stepper - length].module] &= ~(arr[stepper - length].column);
 
-    // Appends current position to draw matrix
-    matrix[current_position.row][current_position.module] |= current_position.column;
-
-    // Append current position to field array
-    arr[stepper].row = current_position.row;
-    arr[stepper].module = current_position.module;
-    arr[stepper].column = current_position.column;
-
-    // Removes tail from field array
+    // Removes tail from Game array
     arr[stepper - length].row = 0;
     arr[stepper - length].module = 0;
     arr[stepper - length].column = 0;
 
-    // Check if field array is full
+    // Appends current position to draw matrix
+    matrix[current_position.row][current_position.module] |= current_position.column;
+
+    // Append current position to Game array
+    arr[stepper].row = current_position.row;
+    arr[stepper].module = current_position.module;
+    arr[stepper].column = current_position.column;
+
+    // Check if Game array is full
     if (stepper == array_size - 1)
     {
-      // Rewrites positions at the beginning of the field array
+      // Rewrites positions at the beginning of the Game array
       for (int i = length; i >= 0; i--)
       {
         arr[length - i].row = arr[array_size - 1 - i].row;
