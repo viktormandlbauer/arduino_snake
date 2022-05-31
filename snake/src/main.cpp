@@ -161,6 +161,10 @@ void left()
   }
 }
 
+void process_joystick_input(){
+
+}
+
 void clear_screen()
 {
   init(1, 0);
@@ -179,11 +183,6 @@ void clear_screen()
       matrix[i][j] = 0;
     }
   }
-}
-
-bool check_collision()
-{
-  return false;
 }
 
 // Gibt eine zufällige Position auf einem Module zurück
@@ -296,47 +295,64 @@ void loop()
     int right_left = analogRead(A1);
 
     // ** Joystick logic **
-    // direction prevents 180° turn
-    if ((up_down < 400) && (direction != 1))
+    // if direction up-down
+    if (direction < 1)
     {
-      up();
-      direction = 0;
+      // only right-left possible
+      if (right_left < 400)
+      {
+        right();
+        direction = 2;
+      }
+      else if (right_left > 600)
+      {
+        left();
+        direction = 3;
+      }
+      else
+      {
+        // Switch-case for keeping direction
+        switch (direction)
+        {
+        case 0:
+          up();
+          break;
+        case 1:
+          down();
+          break;
+        }
+      }
     }
-    else if ((up_down > 600) && (direction != 0))
-    {
-      down();
-      direction = 1;
-    }
-    else if ((right_left < 400) && (direction != 3))
-    {
-      right();
-      direction = 2;
-    }
-    else if ((right_left > 600) && (direction != 2))
-    {
-      left();
-      direction = 3;
-    }
+    // else direction right-left
     else
     {
-      switch (direction)
+      // only up-down possible
+      if (up_down < 400)
       {
-      case 0:
         up();
-        break;
-      case 1:
+        direction = 0;
+      }
+      else if (up_down > 600)
+      {
         down();
-        break;
-      case 2:
-        right();
-        break;
-      case 3:
-        left();
-        break;
+        direction = 1;
+      }
+      else
+      {
+        // Switch-case for keeping direction
+        switch (direction)
+        {
+        case 2:
+          right();
+          break;
+        case 3:
+          left();
+          break;
+        }
       }
     }
 
-    // Check if current_position equals position_food
+    // Check if current_position (head) equals position_food
     if ((current_position.row == position_food.row) && (current_position.module == position_food.module) && (current_position.column == (0x01 << position_food.column)))
     {
       // Increase snake size
@@ -358,26 +374,25 @@ void loop()
       }
     }
 
+    // Appends current position for current step
     matrix[current_position.row][current_position.module] |= current_position.column;
 
     arr[stepper].row = current_position.row;
     arr[stepper].module = current_position.module;
     arr[stepper].column = current_position.column;
 
+    // Removes tail from draw matrix (XOR)
     matrix[arr[stepper - length].row][arr[stepper - length].module] &= ~(arr[stepper - length].column);
 
-    if (stepper != length)
-    {
-      for (int i = 0; i < stepper - length; i++)
-      {
-        arr[i].row = 0;
-        arr[i].module = 0;
-        arr[i].column = 0;
-      }
-    }
+    // Removes tail from field
+    arr[stepper - length].row = 0;
+    arr[stepper - length].module = 0;
+    arr[stepper - length].column = 0;
 
+    // Check if the array is full
     if (stepper == array_size - 1)
     {
+      // Rewrites positions at the beginning of the array
       for (int i = length; i >= 0; i--)
       {
         arr[length - i].row = arr[array_size - 1 - i].row;
@@ -387,6 +402,7 @@ void loop()
       stepper = length;
     }
 
+    // Increase stepper and draw matix
     stepper++;
     draw_matrix();
   }
