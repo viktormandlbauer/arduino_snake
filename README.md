@@ -1,6 +1,6 @@
 # Snake on Arduino uno and MAXLED7219 LED Matrix
 ## Setup
-<img src="./documentation/example_setup.jpg" width="400" height="400">
+<img src="./documentation/setup.png" width="690" height="432"> <br>
 
 ## Datasheets
 Important datasheets for this project:  
