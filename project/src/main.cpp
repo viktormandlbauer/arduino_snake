@@ -48,7 +48,7 @@ void SendByte(byte data)
 void init(byte reg_addr, byte reg_data)
 {
   digitalWrite(LOAD_pin, LOW);
-  for (int i = 0; i < 4; i++)
+  for (int i = 0; i < modules; i++)
   {
     SendByte(reg_addr);
     SendByte(reg_data);
@@ -68,7 +68,7 @@ void draw_matrix()
   {
     digitalWrite(LOAD_pin, LOW);
 
-    for (byte j = 1; j <= 4; j++)
+    for (byte j = 1; j <= modules; j++)
     {
       // Row
       SendByte(i + 1);
@@ -202,9 +202,25 @@ Position get_random_positon()
 }
 
 // Random positon on draw matrix
-Position spawn_food()
+Position spawn_food(Position *arr, int stepper, int length)
 {
-  Position position_food = get_random_positon();
+  Position position_food;
+
+  bool gefunden = false;
+  while (!gefunden)
+  {
+    gefunden = true;
+    position_food = get_random_positon();
+
+    for (int i = stepper - length; i < stepper; i++)
+    {
+      if ((arr[i].row == position_food.row) && (arr[i].module == position_food.module) && (arr[i].column == position_food.column))
+      {
+        gefunden = false;
+      }
+    }
+  }
+
   matrix[position_food.row][position_food.module] |= (0x01 << position_food.column);
   return position_food;
 }
@@ -215,17 +231,17 @@ void new_game(Position arr[array_size])
   // Init position
   // Tail
   arr[0].row = 4;
-  arr[0].module = 1;
+  arr[0].module = 0;
   arr[0].column = (0x01 << 4);
 
   // Body
-  arr[1].row = 4;
+  arr[1].row = 0;
   arr[1].module = 1;
   arr[1].column = (0x01 << 3);
 
   // Head
   arr[2].row = 4;
-  arr[2].module = 1;
+  arr[2].module = 0;
   arr[2].column = (0x01 << 2);
 
   // Head positon is current position
@@ -285,7 +301,7 @@ void loop()
   new_game(arr);
 
   // Spawn first food
-  Position position_food = spawn_food();
+  Position position_food = spawn_food(arr, stepper, length);
 
   while (1)
   {
@@ -390,7 +406,7 @@ void loop()
       length++;
 
       // Spawn food
-      position_food = spawn_food();
+      position_food = spawn_food(arr, stepper, length);
     }
 
     // Check for collissions
