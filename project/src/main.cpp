@@ -1,7 +1,7 @@
 #include <Arduino.h>
 
 // Pin definition
-const int CLOCK_pin = 12;
+const int CLOCK_pin = 11;
 const int LOAD_pin = 12;
 const int DIN_pin = 13;
 const int controller_x_axis = A0;
